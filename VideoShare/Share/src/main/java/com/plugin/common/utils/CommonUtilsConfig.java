@@ -7,9 +7,9 @@ import android.content.Context;
 import android.os.Environment;
 import android.text.TextUtils;
 
+import com.liulord.videoshare.BuildConfig;
 import com.plugin.common.utils.SingleInstanceBase.SingleInstanceManager;
 import com.plugin.common.utils.files.DiskManager;
-import com.zhaowifi.freewifi.BuildConfig;
 
 /**
  * @author Guoqing Sun Mar 11, 20133:08:25 PM

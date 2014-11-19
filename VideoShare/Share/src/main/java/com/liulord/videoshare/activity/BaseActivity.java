@@ -87,31 +87,31 @@ public class BaseActivity extends Activity {
     }
 
     protected void initTitleBar(boolean back, int iconRes, String title, int rightRes) {
-        View titleBar = findViewById(R.id.title_bar);
-        View backV = titleBar.findViewById(R.id.back);
-        ImageView iconIv = (ImageView) titleBar.findViewById(R.id.icon);
-        TextView titleTv = (TextView) titleBar.findViewById(R.id.title);
-        ImageView rightIv = (ImageView) titleBar.findViewById(R.id.right_btn);
-
-        backV.setVisibility(back ? View.VISIBLE : View.GONE);
-        if (iconRes > 0) {
-            iconIv.setImageResource(iconRes);
-            iconIv.setVisibility(View.VISIBLE);
-        } else {
-            iconIv.setVisibility(View.GONE);
-        }
-        titleTv.setVisibility(View.VISIBLE);
-        titleTv.setText(title);
-        if (rightRes > 0) {
-            rightIv.setImageResource(rightRes);
-            rightIv.setVisibility(View.VISIBLE);
-        } else {
-            rightIv.setVisibility(View.GONE);
-        }
-
-        if (backV.getVisibility() == View.VISIBLE) {
-            backV.setOnClickListener(mOnBackClickListener);
-        }
+//        View titleBar = findViewById(R.id.title_bar);
+//        View backV = titleBar.findViewById(R.id.back);
+//        ImageView iconIv = (ImageView) titleBar.findViewById(R.id.icon);
+//        TextView titleTv = (TextView) titleBar.findViewById(R.id.title);
+//        ImageView rightIv = (ImageView) titleBar.findViewById(R.id.right_btn);
+//
+//        backV.setVisibility(back ? View.VISIBLE : View.GONE);
+//        if (iconRes > 0) {
+//            iconIv.setImageResource(iconRes);
+//            iconIv.setVisibility(View.VISIBLE);
+//        } else {
+//            iconIv.setVisibility(View.GONE);
+//        }
+//        titleTv.setVisibility(View.VISIBLE);
+//        titleTv.setText(title);
+//        if (rightRes > 0) {
+//            rightIv.setImageResource(rightRes);
+//            rightIv.setVisibility(View.VISIBLE);
+//        } else {
+//            rightIv.setVisibility(View.GONE);
+//        }
+//
+//        if (backV.getVisibility() == View.VISIBLE) {
+//            backV.setOnClickListener(mOnBackClickListener);
+//        }
     }
 
     protected void initTitleBar(boolean back, String title) {

@@ -7,9 +7,15 @@ package com.plugin.common.utils;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.xunlei.wifibee.utils.UtilsConfig;
 
-import java.io.*;
+import com.liulord.utils.UtilsConfig;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 

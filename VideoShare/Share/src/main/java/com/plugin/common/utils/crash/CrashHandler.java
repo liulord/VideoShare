@@ -9,6 +9,7 @@ import android.os.Looper;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.liulord.utils.UtilsConfig;
 import com.plugin.common.utils.CommonDebugLog;
 import com.plugin.common.utils.CommonUtilsRuntime;
 import com.plugin.common.utils.CustomThreadPool;
@@ -16,7 +17,6 @@ import com.plugin.common.utils.CustomThreadPool.TaskWrapper;
 import com.plugin.common.utils.files.DiskManager;
 import com.plugin.common.utils.files.DiskManager.DiskCacheType;
 import com.plugin.common.utils.files.FileInfo;
-import com.xunlei.wifibee.utils.UtilsConfig;
 
 import java.io.*;
 import java.lang.Thread.UncaughtExceptionHandler;
