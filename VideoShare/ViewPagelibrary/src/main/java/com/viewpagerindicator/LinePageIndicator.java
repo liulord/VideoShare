@@ -27,80 +27,66 @@ import android.support.v4.view.MotionEventCompat;
 import android.support.v4.view.ViewConfigurationCompat;
 import android.support.v4.view.ViewPager;
 import android.util.AttributeSet;
+import android.util.FloatMath;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
-
-import com.liulord.videoshare.R;
 
 /**
  * Draws a line for each page. The current page line is colored differently
  * than the unselected page lines.
  */
-public class UnderlinePageIndicator extends View implements PageIndicator {
+public class LinePageIndicator extends View implements PageIndicator {
     private static final int INVALID_POINTER = -1;
-    private static final int FADE_FRAME_MS = 30;
 
-    private final Paint mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-
-    private boolean mFades;
-    private int mFadeDelay;
-    private int mFadeLength;
-    private int mFadeBy;
-
+    private final Paint mPaintUnselected = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint mPaintSelected = new Paint(Paint.ANTI_ALIAS_FLAG);
     private ViewPager mViewPager;
     private ViewPager.OnPageChangeListener mListener;
-    private int mScrollState;
     private int mCurrentPage;
-    private float mPositionOffset;
+    private boolean mCentered;
+    private float mLineWidth;
+    private float mGapWidth;
 
     private int mTouchSlop;
     private float mLastMotionX = -1;
     private int mActivePointerId = INVALID_POINTER;
     private boolean mIsDragging;
 
-    private final Runnable mFadeRunnable = new Runnable() {
-      @Override public void run() {
-        if (!mFades) return;
 
-        final int alpha = Math.max(mPaint.getAlpha() - mFadeBy, 0);
-        mPaint.setAlpha(alpha);
-        invalidate();
-        if (alpha > 0) {
-          postDelayed(this, FADE_FRAME_MS);
-        }
-      }
-    };
-
-    public UnderlinePageIndicator(Context context) {
+    public LinePageIndicator(Context context) {
         this(context, null);
     }
 
-    public UnderlinePageIndicator(Context context, AttributeSet attrs) {
-        this(context, attrs, R.attr.vpiUnderlinePageIndicatorStyle);
+    public LinePageIndicator(Context context, AttributeSet attrs) {
+        this(context, attrs, R.attr.vpiLinePageIndicatorStyle);
     }
 
-    public UnderlinePageIndicator(Context context, AttributeSet attrs, int defStyle) {
+    public LinePageIndicator(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
         if (isInEditMode()) return;
 
         final Resources res = getResources();
 
         //Load defaults from resources
-        final boolean defaultFades = res.getBoolean(R.bool.default_underline_indicator_fades);
-        final int defaultFadeDelay = res.getInteger(R.integer.default_underline_indicator_fade_delay);
-        final int defaultFadeLength = res.getInteger(R.integer.default_underline_indicator_fade_length);
-        final int defaultSelectedColor = res.getColor(R.color.default_underline_indicator_selected_color);
+        final int defaultSelectedColor = res.getColor(R.color.default_line_indicator_selected_color);
+        final int defaultUnselectedColor = res.getColor(R.color.default_line_indicator_unselected_color);
+        final float defaultLineWidth = res.getDimension(R.dimen.default_line_indicator_line_width);
+        final float defaultGapWidth = res.getDimension(R.dimen.default_line_indicator_gap_width);
+        final float defaultStrokeWidth = res.getDimension(R.dimen.default_line_indicator_stroke_width);
+        final boolean defaultCentered = res.getBoolean(R.bool.default_line_indicator_centered);
 
         //Retrieve styles attributes
-        TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.UnderlinePageIndicator, defStyle, 0);
+        TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.LinePageIndicator, defStyle, 0);
 
-        setFades(a.getBoolean(R.styleable.UnderlinePageIndicator_fades, defaultFades));
-        setSelectedColor(a.getColor(R.styleable.UnderlinePageIndicator_selectedColor, defaultSelectedColor));
-        setFadeDelay(a.getInteger(R.styleable.UnderlinePageIndicator_fadeDelay, defaultFadeDelay));
-        setFadeLength(a.getInteger(R.styleable.UnderlinePageIndicator_fadeLength, defaultFadeLength));
+        mCentered = a.getBoolean(R.styleable.LinePageIndicator_centered, defaultCentered);
+        mLineWidth = a.getDimension(R.styleable.LinePageIndicator_lineWidth, defaultLineWidth);
+        mGapWidth = a.getDimension(R.styleable.LinePageIndicator_gapWidth, defaultGapWidth);
+        setStrokeWidth(a.getDimension(R.styleable.LinePageIndicator_strokeWidth, defaultStrokeWidth));
+        mPaintUnselected.setColor(a.getColor(R.styleable.LinePageIndicator_unselectedColor, defaultUnselectedColor));
+        mPaintSelected.setColor(a.getColor(R.styleable.LinePageIndicator_selectedColor, defaultSelectedColor));
 
-        Drawable background = a.getDrawable(R.styleable.UnderlinePageIndicator_android_background);
+        Drawable background = a.getDrawable(R.styleable.LinePageIndicator_android_background);
         if (background != null) {
           setBackgroundDrawable(background);
         }
@@ -111,47 +97,60 @@ public class UnderlinePageIndicator extends View implements PageIndicator {
         mTouchSlop = ViewConfigurationCompat.getScaledPagingTouchSlop(configuration);
     }
 
-    public boolean getFades() {
-        return mFades;
+
+    public void setCentered(boolean centered) {
+        mCentered = centered;
+        invalidate();
     }
 
-    public void setFades(boolean fades) {
-        if (fades != mFades) {
-            mFades = fades;
-            if (fades) {
-                post(mFadeRunnable);
-            } else {
-                removeCallbacks(mFadeRunnable);
-                mPaint.setAlpha(0xFF);
-                invalidate();
-            }
-        }
+    public boolean isCentered() {
+        return mCentered;
     }
 
-    public int getFadeDelay() {
-        return mFadeDelay;
+    public void setUnselectedColor(int unselectedColor) {
+        mPaintUnselected.setColor(unselectedColor);
+        invalidate();
     }
 
-    public void setFadeDelay(int fadeDelay) {
-        mFadeDelay = fadeDelay;
-    }
-
-    public int getFadeLength() {
-        return mFadeLength;
-    }
-
-    public void setFadeLength(int fadeLength) {
-        mFadeLength = fadeLength;
-        mFadeBy = 0xFF / (mFadeLength / FADE_FRAME_MS);
-    }
-
-    public int getSelectedColor() {
-        return mPaint.getColor();
+    public int getUnselectedColor() {
+        return mPaintUnselected.getColor();
     }
 
     public void setSelectedColor(int selectedColor) {
-        mPaint.setColor(selectedColor);
+        mPaintSelected.setColor(selectedColor);
         invalidate();
+    }
+
+    public int getSelectedColor() {
+        return mPaintSelected.getColor();
+    }
+
+    public void setLineWidth(float lineWidth) {
+        mLineWidth = lineWidth;
+        invalidate();
+    }
+
+    public float getLineWidth() {
+        return mLineWidth;
+    }
+
+    public void setStrokeWidth(float lineHeight) {
+        mPaintSelected.setStrokeWidth(lineHeight);
+        mPaintUnselected.setStrokeWidth(lineHeight);
+        invalidate();
+    }
+
+    public float getStrokeWidth() {
+        return mPaintSelected.getStrokeWidth();
+    }
+
+    public void setGapWidth(float gapWidth) {
+        mGapWidth = gapWidth;
+        invalidate();
+    }
+
+    public float getGapWidth() {
+        return mGapWidth;
     }
 
     @Override
@@ -171,16 +170,27 @@ public class UnderlinePageIndicator extends View implements PageIndicator {
             return;
         }
 
-        final int paddingLeft = getPaddingLeft();
-        final float pageWidth = (getWidth() - paddingLeft - getPaddingRight()) / (1f * count);
-        final float left = paddingLeft + pageWidth * (mCurrentPage + mPositionOffset);
-        final float right = left + pageWidth;
-        final float top = getPaddingTop();
-        final float bottom = getHeight() - getPaddingBottom();
-        canvas.drawRect(left, top, right, bottom, mPaint);
+        final float lineWidthAndGap = mLineWidth + mGapWidth;
+        final float indicatorWidth = (count * lineWidthAndGap) - mGapWidth;
+        final float paddingTop = getPaddingTop();
+        final float paddingLeft = getPaddingLeft();
+        final float paddingRight = getPaddingRight();
+
+        float verticalOffset = paddingTop + ((getHeight() - paddingTop - getPaddingBottom()) / 2.0f);
+        float horizontalOffset = paddingLeft;
+        if (mCentered) {
+            horizontalOffset += ((getWidth() - paddingLeft - paddingRight) / 2.0f) - (indicatorWidth / 2.0f);
+        }
+
+        //Draw stroked circles
+        for (int i = 0; i < count; i++) {
+            float dx1 = horizontalOffset + (i * lineWidthAndGap);
+            float dx2 = dx1 + mLineWidth;
+            canvas.drawLine(dx1, verticalOffset, dx2, verticalOffset, (i == mCurrentPage) ? mPaintSelected : mPaintUnselected);
+        }
     }
 
-    public boolean onTouchEvent(MotionEvent ev) {
+    public boolean onTouchEvent(android.view.MotionEvent ev) {
         if (super.onTouchEvent(ev)) {
             return true;
         }
@@ -278,13 +288,6 @@ public class UnderlinePageIndicator extends View implements PageIndicator {
         mViewPager = viewPager;
         mViewPager.setOnPageChangeListener(this);
         invalidate();
-        post(new Runnable() {
-            @Override public void run() {
-                if (mFades) {
-                    post(mFadeRunnable);
-                }
-            }
-        });
     }
 
     @Override
@@ -310,8 +313,6 @@ public class UnderlinePageIndicator extends View implements PageIndicator {
 
     @Override
     public void onPageScrollStateChanged(int state) {
-        mScrollState = state;
-
         if (mListener != null) {
             mListener.onPageScrollStateChanged(state);
         }
@@ -319,18 +320,6 @@ public class UnderlinePageIndicator extends View implements PageIndicator {
 
     @Override
     public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-        mCurrentPage = position;
-        mPositionOffset = positionOffset;
-        if (mFades) {
-            if (positionOffsetPixels > 0) {
-                removeCallbacks(mFadeRunnable);
-                mPaint.setAlpha(0xFF);
-            } else if (mScrollState != ViewPager.SCROLL_STATE_DRAGGING) {
-                postDelayed(mFadeRunnable, mFadeDelay);
-            }
-        }
-        invalidate();
-
         if (mListener != null) {
             mListener.onPageScrolled(position, positionOffset, positionOffsetPixels);
         }
@@ -338,12 +327,9 @@ public class UnderlinePageIndicator extends View implements PageIndicator {
 
     @Override
     public void onPageSelected(int position) {
-        if (mScrollState == ViewPager.SCROLL_STATE_IDLE) {
-            mCurrentPage = position;
-            mPositionOffset = 0;
-            invalidate();
-            mFadeRunnable.run();
-        }
+        mCurrentPage = position;
+        invalidate();
+
         if (mListener != null) {
             mListener.onPageSelected(position);
         }
@@ -352,6 +338,64 @@ public class UnderlinePageIndicator extends View implements PageIndicator {
     @Override
     public void setOnPageChangeListener(ViewPager.OnPageChangeListener listener) {
         mListener = listener;
+    }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        setMeasuredDimension(measureWidth(widthMeasureSpec), measureHeight(heightMeasureSpec));
+    }
+
+    /**
+     * Determines the width of this view
+     *
+     * @param measureSpec
+     *            A measureSpec packed into an int
+     * @return The width of the view, honoring constraints from measureSpec
+     */
+    private int measureWidth(int measureSpec) {
+        float result;
+        int specMode = MeasureSpec.getMode(measureSpec);
+        int specSize = MeasureSpec.getSize(measureSpec);
+
+        if ((specMode == MeasureSpec.EXACTLY) || (mViewPager == null)) {
+            //We were told how big to be
+            result = specSize;
+        } else {
+            //Calculate the width according the views count
+            final int count = mViewPager.getAdapter().getCount();
+            result = getPaddingLeft() + getPaddingRight() + (count * mLineWidth) + ((count - 1) * mGapWidth);
+            //Respect AT_MOST value if that was what is called for by measureSpec
+            if (specMode == MeasureSpec.AT_MOST) {
+                result = Math.min(result, specSize);
+            }
+        }
+        return (int)FloatMath.ceil(result);
+    }
+
+    /**
+     * Determines the height of this view
+     *
+     * @param measureSpec
+     *            A measureSpec packed into an int
+     * @return The height of the view, honoring constraints from measureSpec
+     */
+    private int measureHeight(int measureSpec) {
+        float result;
+        int specMode = MeasureSpec.getMode(measureSpec);
+        int specSize = MeasureSpec.getSize(measureSpec);
+
+        if (specMode == MeasureSpec.EXACTLY) {
+            //We were told how big to be
+            result = specSize;
+        } else {
+            //Measure the height
+            result = mPaintSelected.getStrokeWidth() + getPaddingTop() + getPaddingBottom();
+            //Respect AT_MOST value if that was what is called for by measureSpec
+            if (specMode == MeasureSpec.AT_MOST) {
+                result = Math.min(result, specSize);
+            }
+        }
+        return (int)FloatMath.ceil(result);
     }
 
     @Override
@@ -389,7 +433,7 @@ public class UnderlinePageIndicator extends View implements PageIndicator {
         }
 
         @SuppressWarnings("UnusedDeclaration")
-        public static final Creator<SavedState> CREATOR = new Creator<SavedState>() {
+        public static final Parcelable.Creator<SavedState> CREATOR = new Parcelable.Creator<SavedState>() {
             @Override
             public SavedState createFromParcel(Parcel in) {
                 return new SavedState(in);

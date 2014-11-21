@@ -36,8 +36,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 
-import com.liulord.videoshare.R;
-
 import java.util.ArrayList;
 
 /**
