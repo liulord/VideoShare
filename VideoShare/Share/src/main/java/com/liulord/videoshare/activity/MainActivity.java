@@ -2,13 +2,24 @@ package com.liulord.videoshare.activity;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.support.v4.view.ViewPager;
 import android.view.Menu;
 import android.view.MenuItem;
 
 import com.liulord.videoshare.R;
+import com.liulord.videoshare.fragment.VideoShareFragmentAdapter;
+import com.viewpagerindicator.PageIndicator;
+
+import java.util.Random;
 
 
 public class MainActivity extends Activity {
+
+    private static final Random RANDOM = new Random();
+
+    VideoShareFragmentAdapter mAdapter;
+    ViewPager mPager;
+    PageIndicator mIndicator;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
