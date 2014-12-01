@@ -1,7 +1,5 @@
 package com.liulord.videoshare.fragment;
 
-import android.app.Activity;
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
@@ -52,7 +50,7 @@ public class BaseFragment extends Fragment {
     public static BaseFragment newInstance(String s) {
         if(s.equals("This"))
         {
-            BaseFragment fragment = new BaseFragment();
+            BaseFragment fragment = new VideoFragment();
             return fragment;
         }
         //default
