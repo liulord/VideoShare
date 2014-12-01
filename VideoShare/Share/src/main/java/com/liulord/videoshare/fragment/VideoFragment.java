@@ -1,5 +1,6 @@
 package com.liulord.videoshare.fragment;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -8,6 +9,11 @@ import android.widget.GridView;
 import android.widget.SimpleAdapter;
 
 import com.liulord.videoshare.R;
+import com.liulord.videoshare.api.request.VideoInfoRequest;
+import com.liulord.videoshare.api.response.VideoInfoResponse;
+import com.plugin.common.utils.CustomThreadPool;
+import com.plugin.internet.InternetUtils;
+import com.plugin.internet.core.NetWorkException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,13 +28,17 @@ public class VideoFragment extends BaseFragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        requestData(this.getActivity());
     }
+
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
 //        return inflater.inflate(R.layout.fragment_video, container, false);
+
+
         View rootView = inflater.inflate(R.layout.fragment_video, container, false);
         GridView base = (GridView) rootView.findViewById(R.id.baseGrid);
         SimpleAdapter adapter = new SimpleAdapter(this.getActivity(), getData(), R.layout.vlist,
@@ -50,6 +60,22 @@ public class VideoFragment extends BaseFragment {
             list.add(map);
         }
         return list;
+    }
+
+    private void requestData(final Context context)
+    {
+        CustomThreadPool.asyncWork(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    VideoInfoRequest request = new VideoInfoRequest(0, 0, 10, 0, 1);
+                    VideoInfoResponse response = InternetUtils.request(context, request);
+
+                } catch (NetWorkException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
 }
