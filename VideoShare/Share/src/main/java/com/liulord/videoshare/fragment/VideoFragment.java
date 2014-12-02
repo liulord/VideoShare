@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -39,6 +40,9 @@ public class VideoFragment extends BaseFragment {
     private static final String TAG = "videoshare";
     public List<VideoData> mVideolist;
     DisplayImageOptions mOptions;
+    VideoDataAdapter mAdapter;
+    PullToRefreshGridView mBaseGrid;
+    Handler mHandler;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -55,6 +59,7 @@ public class VideoFragment extends BaseFragment {
                 .cacheOnDisc(true)
                 .bitmapConfig(Bitmap.Config.RGB_565)     //设置图片的解码类型
                 .build();
+        mHandler = new Handler();
     }
 
     @Override
@@ -65,24 +70,24 @@ public class VideoFragment extends BaseFragment {
 
         final Context context = this.getActivity().getApplicationContext();
         View rootView = inflater.inflate(R.layout.fragment_video, container, false);
-        final PullToRefreshGridView base = (PullToRefreshGridView) rootView.findViewById(R.id.baseGrid);
-        base.setMode(PullToRefreshBase.Mode.BOTH);
-        base.getLoadingLayoutProxy(false, true).setPullLabel("正在加载");
-        base.getLoadingLayoutProxy(false, true).setRefreshingLabel("正在加载");
-        base.getLoadingLayoutProxy(false, true).setReleaseLabel("加载完成");
-        base.setOnRefreshListener(new PullToRefreshBase.OnRefreshListener2<GridView>() {
+        mBaseGrid = (PullToRefreshGridView) rootView.findViewById(R.id.baseGrid);
+        mBaseGrid.setMode(PullToRefreshBase.Mode.BOTH);
+        mBaseGrid.getLoadingLayoutProxy(false, true).setPullLabel("正在加载");
+        mBaseGrid.getLoadingLayoutProxy(false, true).setRefreshingLabel("正在加载");
+        mBaseGrid.getLoadingLayoutProxy(false, true).setReleaseLabel("加载完成");
+        mBaseGrid.setOnRefreshListener(new PullToRefreshBase.OnRefreshListener2<GridView>() {
             @Override
             public void onPullDownToRefresh(PullToRefreshBase<GridView> refreshView) {
                 DebugLog.d(TAG, "pull down!");
                 requestData(context, 0);
-                base.onRefreshComplete();
+//                base.onRefreshComplete();
             }
 
             @Override
             public void onPullUpToRefresh(PullToRefreshBase<GridView> refreshView) {
                 DebugLog.d(TAG, "pull up!");
                 requestData(context, 1);
-                base.onRefreshComplete();
+//                base.onRefreshComplete();
             }
         });
 
@@ -90,8 +95,8 @@ public class VideoFragment extends BaseFragment {
 //                new String[] {"background", "user", "hint"},
 //                new int[] { R.id.backgroud, R.id.user, R.id.hint});
 //        setListAdapter(adapter);
-        VideoDataAdapter adapter = new VideoDataAdapter(mVideolist, this.getActivity());
-        base.setAdapter(adapter);
+        mAdapter = new VideoDataAdapter(mVideolist, this.getActivity());
+        mBaseGrid.setAdapter(mAdapter);
         return rootView;
     }
 
@@ -146,6 +151,13 @@ public class VideoFragment extends BaseFragment {
                         }
                         break;
                     }
+                    mHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            mAdapter.notifyDataSetChanged();
+                            mBaseGrid.onRefreshComplete();
+                        }
+                    });
                 } catch (NetWorkException e) {
                     e.printStackTrace();
                 }
@@ -206,6 +218,7 @@ public class VideoFragment extends BaseFragment {
                 holder.background = (ImageView) root.findViewById(R.id.backgroud);
                 holder.user = (ImageView)root.findViewById(R.id.user);
                 holder.hint = (TextView) root.findViewById(R.id.hint);
+                holder.user_name = (TextView) root.findViewById(R.id.user_name);
                 root.setTag(holder);
             }
             else
@@ -213,6 +226,7 @@ public class VideoFragment extends BaseFragment {
             ImageLoader.getInstance().displayImage(((VideoData)getItem(i)).backUrl, holder.background, mOptions);
             ImageLoader.getInstance().displayImage(((VideoData)getItem(i)).userUrl, holder.user, mOptions);
             holder.hint.setText(((VideoData)getItem(i)).hint);
+            holder.user_name.setText(((VideoData)getItem(i)).userName);
 
             return root;
         }
@@ -223,6 +237,7 @@ public class VideoFragment extends BaseFragment {
         ImageView background;
         ImageView user;
         TextView hint;
+        TextView user_name;
     }
 
 }
