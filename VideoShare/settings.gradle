@@ -1,2 +1,2 @@
-include ':Share'
+include ':Share', ':PullRefreshLib'
 include ':ViewPagelibrary'
