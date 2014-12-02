@@ -12,7 +12,7 @@ public class UtilsConfig {
 
     public static final String CURRENT_PACKAGE_NAME_BINDING = "wifitest";
     public static final String PES_LOG_TAG = "PesLog";
-    public static final String DISK_LOG_PATH_BINDING = Environment.getExternalStorageDirectory().getPath() + "/mywifi_trace";
+    public static final String DISK_LOG_PATH_BINDING = Environment.getExternalStorageDirectory().getPath() + "/myvideoshare";
     public static final int DEFAULT = -1;
     public static final long LONGDEFAULT = 0;
     public static final long PASSWDTIME = 0;

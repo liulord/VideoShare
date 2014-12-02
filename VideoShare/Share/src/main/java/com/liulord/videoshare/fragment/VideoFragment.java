@@ -1,16 +1,27 @@
 package com.liulord.videoshare.fragment;
 
+import android.app.Activity;
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.BaseAdapter;
 import android.widget.GridView;
+import android.widget.ImageView;
 import android.widget.SimpleAdapter;
+import android.widget.TextView;
 
+import com.handmark.pulltorefresh.library.PullToRefreshBase;
+import com.handmark.pulltorefresh.library.PullToRefreshGridView;
+import com.liulord.utils.DebugLog;
 import com.liulord.videoshare.R;
 import com.liulord.videoshare.api.request.VideoInfoRequest;
 import com.liulord.videoshare.api.response.VideoInfoResponse;
+import com.nostra13.universalimageloader.core.DisplayImageOptions;
+import com.nostra13.universalimageloader.core.ImageLoader;
+import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
 import com.plugin.common.utils.CustomThreadPool;
 import com.plugin.internet.InternetUtils;
 import com.plugin.internet.core.NetWorkException;
@@ -25,26 +36,61 @@ import java.util.Map;
  */
 public class VideoFragment extends BaseFragment {
 
+    private static final String TAG = "videoshare";
+    public List<VideoData> mVideolist;
+    DisplayImageOptions mOptions;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        requestData(this.getActivity());
+        mVideolist = new ArrayList<VideoData>();
+//        ImageLoader.getInstance().init(new ImageLoaderConfiguration());
+        for(int i = 0 ; i!= 20; ++i)
+            mVideolist.add(new VideoData("", "", "", "",0));
+        mOptions = new DisplayImageOptions.Builder()
+                .showStubImage(R.drawable.ic_launcher)
+                .showImageForEmptyUri(R.drawable.ic_launcher)
+                .showImageOnFail(R.drawable.icon)
+                .cacheInMemory(true)
+                .cacheOnDisc(true)
+                .bitmapConfig(Bitmap.Config.RGB_565)     //设置图片的解码类型
+                .build();
     }
 
-
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+    public View onCreateView(LayoutInflater inflater, final ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
 //        return inflater.inflate(R.layout.fragment_video, container, false);
 
-
+        final Context context = this.getActivity().getApplicationContext();
         View rootView = inflater.inflate(R.layout.fragment_video, container, false);
-        GridView base = (GridView) rootView.findViewById(R.id.baseGrid);
-        SimpleAdapter adapter = new SimpleAdapter(this.getActivity(), getData(), R.layout.vlist,
-                new String[] {"background", "user", "hint"},
-                new int[] { R.id.backgroud, R.id.user, R.id.hint});
+        final PullToRefreshGridView base = (PullToRefreshGridView) rootView.findViewById(R.id.baseGrid);
+        base.setMode(PullToRefreshBase.Mode.BOTH);
+        base.getLoadingLayoutProxy(false, true).setPullLabel("正在加载");
+        base.getLoadingLayoutProxy(false, true).setRefreshingLabel("正在加载");
+        base.getLoadingLayoutProxy(false, true).setReleaseLabel("加载完成");
+        base.setOnRefreshListener(new PullToRefreshBase.OnRefreshListener2<GridView>() {
+            @Override
+            public void onPullDownToRefresh(PullToRefreshBase<GridView> refreshView) {
+                DebugLog.d(TAG, "pull down!");
+                requestData(context, 0);
+                base.onRefreshComplete();
+            }
+
+            @Override
+            public void onPullUpToRefresh(PullToRefreshBase<GridView> refreshView) {
+                DebugLog.d(TAG, "pull up!");
+                requestData(context, 1);
+                base.onRefreshComplete();
+            }
+        });
+
+//        SimpleAdapter adapter = new SimpleAdapter(this.getActivity(), getData(), R.layout.vlist,
+//                new String[] {"background", "user", "hint"},
+//                new int[] { R.id.backgroud, R.id.user, R.id.hint});
 //        setListAdapter(adapter);
+        VideoDataAdapter adapter = new VideoDataAdapter(mVideolist, this.getActivity());
         base.setAdapter(adapter);
         return rootView;
     }
@@ -62,20 +108,121 @@ public class VideoFragment extends BaseFragment {
         return list;
     }
 
-    private void requestData(final Context context)
-    {
+
+    /**
+     *
+     * @param context
+     * @param mode 0: refresh 1: load more
+     */
+    private void requestData(final Context context, final int mode ) {
         CustomThreadPool.asyncWork(new Runnable() {
             @Override
             public void run() {
                 try {
-                    VideoInfoRequest request = new VideoInfoRequest(0, 0, 10, 0, 1);
-                    VideoInfoResponse response = InternetUtils.request(context, request);
-
+                    switch (mode) {
+                        case 0: {
+                            VideoInfoRequest request = new VideoInfoRequest(0, 0, 20, 0, 1);
+                            VideoInfoResponse response = InternetUtils.request(context, request);
+                            if (response != null && response.detailInfo != null && !response.detailInfo.isEmpty()) {
+                                mVideolist.clear();
+                                for (VideoInfoResponse.VideoDetailResponse data : response.detailInfo) {
+                                    mVideolist.add(new VideoData(data.snapshot_url, data.user_url, data.user_name, data.desc, data.like_num));
+                                }
+                                DebugLog.d(TAG, response.toString());
+                            }
+                        }
+                        break;
+                        case 1: {
+                            int start_num = mVideolist.size();
+                            VideoInfoRequest request = new VideoInfoRequest(0, start_num, 20, 0, 1);
+                            VideoInfoResponse response = InternetUtils.request(context, request);
+                            if (response != null && response.detailInfo != null && !response.detailInfo.isEmpty()) {
+//                        mVideolist.clear();
+                                for (VideoInfoResponse.VideoDetailResponse data : response.detailInfo) {
+                                    mVideolist.add(new VideoData(data.snapshot_url, data.user_url, data.user_name, data.desc, data.like_num));
+                                }
+                                DebugLog.d(TAG, response.toString());
+                            }
+                        }
+                        break;
+                    }
                 } catch (NetWorkException e) {
                     e.printStackTrace();
                 }
             }
         });
+    }
+
+
+    class VideoData {
+        public String backUrl;
+        public String userUrl;
+        public String userName;
+        public String hint;
+        public int like;
+
+        VideoData(String backUrl, String userUrl, String userName, String hint, int like) {
+            this.backUrl = backUrl;
+            this.userUrl = userUrl;
+            this.userName = userName;
+            this.hint = hint;
+            this.like = like;
+        }
+    }
+
+    class VideoDataAdapter extends BaseAdapter
+    {
+        List<VideoData> mList;
+        LayoutInflater mInflater;
+        public VideoDataAdapter(List<VideoData> data, Activity context) {
+            super();
+            mList = data;
+            mInflater = LayoutInflater.from(context);
+        }
+
+        @Override
+        public int getCount() {
+            return mList.size();
+        }
+
+        @Override
+        public Object getItem(int i) {
+            return mList.get(i);
+        }
+
+        @Override
+        public long getItemId(int i) {
+            return i;
+        }
+
+        @Override
+        public View getView(int i, View view, ViewGroup viewGroup) {
+            View root = view;
+            ViewHolder holder;
+
+            if(root == null) {
+                root = mInflater.inflate(R.layout.vlist, viewGroup, false);
+                holder = new ViewHolder();
+                holder.background = (ImageView) root.findViewById(R.id.backgroud);
+                holder.user = (ImageView)root.findViewById(R.id.user);
+                holder.hint = (TextView) root.findViewById(R.id.hint);
+                root.setTag(holder);
+            }
+            else
+                holder = (ViewHolder)view.getTag();
+            ImageLoader.getInstance().displayImage(((VideoData)getItem(i)).backUrl, holder.background, mOptions);
+            ImageLoader.getInstance().displayImage(((VideoData)getItem(i)).userUrl, holder.user, mOptions);
+            holder.hint.setText(((VideoData)getItem(i)).hint);
+
+            return root;
+        }
+    }
+
+    static class ViewHolder
+    {
+        ImageView background;
+        ImageView user;
+        TextView hint;
     }
 
 }
