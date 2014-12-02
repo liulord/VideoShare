@@ -1,28 +1,31 @@
 package com.liulord.videoshare.fragment;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.ImageView;
-import android.widget.SimpleAdapter;
 import android.widget.TextView;
 
 import com.handmark.pulltorefresh.library.PullToRefreshBase;
 import com.handmark.pulltorefresh.library.PullToRefreshGridView;
 import com.liulord.utils.DebugLog;
 import com.liulord.videoshare.R;
+import com.liulord.videoshare.activity.VideoPlayActivity;
 import com.liulord.videoshare.api.request.VideoInfoRequest;
 import com.liulord.videoshare.api.response.VideoInfoResponse;
 import com.nostra13.universalimageloader.core.DisplayImageOptions;
 import com.nostra13.universalimageloader.core.ImageLoader;
-import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
 import com.plugin.common.utils.CustomThreadPool;
 import com.plugin.internet.InternetUtils;
 import com.plugin.internet.core.NetWorkException;
@@ -50,7 +53,7 @@ public class VideoFragment extends BaseFragment {
         mVideolist = new ArrayList<VideoData>();
 //        ImageLoader.getInstance().init(new ImageLoaderConfiguration());
         for(int i = 0 ; i!= 20; ++i)
-            mVideolist.add(new VideoData("", "", "", "",0));
+            mVideolist.add(new VideoData("", "", "", "",0, ""));
         mOptions = new DisplayImageOptions.Builder()
                 .showStubImage(R.drawable.ic_launcher)
                 .showImageForEmptyUri(R.drawable.ic_launcher)
@@ -97,6 +100,17 @@ public class VideoFragment extends BaseFragment {
 //        setListAdapter(adapter);
         mAdapter = new VideoDataAdapter(mVideolist, this.getActivity());
         mBaseGrid.setAdapter(mAdapter);
+        mBaseGrid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                VideoData data = (VideoData) adapterView.getItemAtPosition(i);
+                Intent intent = new Intent(context, VideoPlayActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                intent.putExtra("url",data.videoUrl);
+                context.startActivity(intent);
+            }
+        });
+        requestData(context,0);
         return rootView;
     }
 
@@ -131,7 +145,7 @@ public class VideoFragment extends BaseFragment {
                             if (response != null && response.detailInfo != null && !response.detailInfo.isEmpty()) {
                                 mVideolist.clear();
                                 for (VideoInfoResponse.VideoDetailResponse data : response.detailInfo) {
-                                    mVideolist.add(new VideoData(data.snapshot_url, data.user_url, data.user_name, data.desc, data.like_num));
+                                    mVideolist.add(new VideoData(data.snapshot_url, data.user_url, data.user_name, data.desc, data.like_num, data.video_url));
                                 }
                                 DebugLog.d(TAG, response.toString());
                             }
@@ -144,7 +158,7 @@ public class VideoFragment extends BaseFragment {
                             if (response != null && response.detailInfo != null && !response.detailInfo.isEmpty()) {
 //                        mVideolist.clear();
                                 for (VideoInfoResponse.VideoDetailResponse data : response.detailInfo) {
-                                    mVideolist.add(new VideoData(data.snapshot_url, data.user_url, data.user_name, data.desc, data.like_num));
+                                    mVideolist.add(new VideoData(data.snapshot_url, data.user_url, data.user_name, data.desc, data.like_num, data.video_url));
                                 }
                                 DebugLog.d(TAG, response.toString());
                             }
@@ -172,13 +186,15 @@ public class VideoFragment extends BaseFragment {
         public String userName;
         public String hint;
         public int like;
+        public String videoUrl;
 
-        VideoData(String backUrl, String userUrl, String userName, String hint, int like) {
+        VideoData(String backUrl, String userUrl, String userName, String hint, int like, String videoUrl) {
             this.backUrl = backUrl;
             this.userUrl = userUrl;
             this.userName = userName;
             this.hint = hint;
             this.like = like;
+            this.videoUrl = videoUrl;
         }
     }
 
