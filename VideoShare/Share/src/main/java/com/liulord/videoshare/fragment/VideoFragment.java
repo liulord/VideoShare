@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -106,7 +107,8 @@ public class VideoFragment extends BaseFragment {
                 VideoData data = (VideoData) adapterView.getItemAtPosition(i);
                 Intent intent = new Intent(context, VideoPlayActivity.class);
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                intent.putExtra("url",data.videoUrl);
+                intent.setData(Uri.parse(data.videoUrl));
+//                intent.putExtra("url",data.videoUrl);
                 context.startActivity(intent);
             }
         });
